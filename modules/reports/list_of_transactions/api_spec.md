@@ -70,8 +70,10 @@ $$\text{End Date} = \text{Carbon::createFromDate}(\text{year}, \text{month}, 1)\
   * Loads `RpasBarangay` with `rpasDistrict` relationship to resolve exact `name`, `code`, and `district_code`.
 
 ### Step 3: Status Mode Resolution (Approved vs. Validated)
+Status resolution is governed by the two-tier status architecture specified in [`rpas_td_statuses.md`](file:///c:/Users/Administrator/Desktop/RPAS/Development/docs/architecture/rpas_td_statuses.md#51-mode-resolution-rule):
 * Default status mode is **`approved`** (`subStatusId = 2`, `code = 'is_approved'`).
 * If `validated` or `is_validated` is explicitly `true` (and `is_approved` is `false`), status mode switches to **`validated`** (`subStatusId = 1`, `code = 'is_validated'`).
+* For the full definition of workflow sub-statuses (`rpas_sub_status` and `rpas_td_sub_statuses`), refer directly to [`rpas_td_statuses.md`](file:///c:/Users/Administrator/Desktop/RPAS/Development/docs/architecture/rpas_td_statuses.md#3-workflow-progress-sub-statuses).
 
 ### Step 4: Base Query Construction & Relationship Eager-Loading
 Query executes on `RpasTdDetail` with eager loading:
@@ -89,10 +91,15 @@ Query executes on `RpasTdDetail` with eager loading:
 3. **Taxability Filter**:
    * `'taxable'`: `whereHas('appraisals', fn($q) => $q->where('tax_exempted', false))`
    * `'exempt'` / `'exempted'`: `whereHas('appraisals', fn($q) => $q->where('tax_exempted', true))`
-4. **Target Date & Status Match**: Record must satisfy **at least one** of:
-   * Active sub-status matching target status (`is_approved` / `is_validated`) created within `[start_date, end_date]`.
-   * **OR** Cancelled status (`rpas_status_id = 2` or code in `['cancelled', 'cancelled_by_noc']`) created/updated within `[start_date, end_date]`.
-   * **OR** Linked to a Notice of Cancellation (`nocTaxDec`) created/updated within `[start_date, end_date]`.
+4. **Target Date & Status Match**: Record must satisfy **at least one** of the following conditions defined in [`rpas_td_statuses.md`](file:///c:/Users/Administrator/Desktop/RPAS/Development/docs/architecture/rpas_td_statuses.md#52-application-by-report-type):
+   * Active workflow sub-status (`rpas_td_sub_statuses.is_active = true`) matching target mode (`is_approved` / `is_validated`) created within `[start_date, end_date]`.
+   * **OR** Primary lifecycle status is Cancelled (`rpas_tax_declaration_statuses.rpas_status_id = 2` or code in `['cancelled', 'cancelled_by_noc']`) created/updated within `[start_date, end_date]`.
+   * **OR** Linked to a Notice of Cancellation (`nocTaxDec` / `rpas_nocs`) created/updated within `[start_date, end_date]`.
+
+> [!IMPORTANT]
+> **Authoritative Status & Cancellation References**:
+> * For the authoritative specification of the primary lifecycle status (`rpas_statuses`) vs. workflow sub-status (`rpas_sub_status`), active flag semantics, and Eloquent model helpers, see [`rpas_td_statuses.md`](file:///c:/Users/Administrator/Desktop/RPAS/Development/docs/architecture/rpas_td_statuses.md).
+> * For distinguishing **Cancelled by Transaction** (`cancelled_by_transaction = true`) from **Cancelled by Notice of Cancellation** (`cancelled_by_transaction = false` or `rpas_nocs`), see [`rpas_transaction_processes.md`](file:///c:/Users/Administrator/Desktop/RPAS/Development/docs/architecture/rpas_transaction_processes.md#6-system-wide-detection-rule-cancelled-by-transaction-vs-notice-of-cancellation).
 
 ---
 
@@ -105,6 +112,7 @@ To enable front-end **ROA (Roll of Assessment) vs. RCA (Roll of Cancelled Assess
 
 ### Step 6: Data Transformation & Universal Schema
 Each record is mapped into a normalized JSON structure:
+*(Note: `cancelled_by_notice_of_cancellation` is evaluated per the canonical rule in [`rpas_transaction_processes.md`](file:///c:/Users/Administrator/Desktop/RPAS/Development/docs/architecture/rpas_transaction_processes.md#6-system-wide-detection-rule-cancelled-by-transaction-vs-notice-of-cancellation))*.
 
 ```json
 {
