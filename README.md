@@ -19,9 +19,11 @@ docs/
         │   ├── report_spec.md        # General report specifications & business rules
         │   ├── api_spec.md           # Backend Laravel endpoint, request, and service spec
         │   └── frontend_spec.md      # React UI, filter dialog, document generation, and printing
-        └── tax_map_control_roll/     # Tax Map Control Roll (TMCR) Report
-            ├── api_spec.md           # Backend API hierarchy, active-only filter, and response schema
-            └── frontend_spec.md      # React document layout, visual header boxes, and LOT PIN table
+        ├── tax_map_control_roll/     # Tax Map Control Roll (TMCR) Report
+        │   ├── api_spec.md           # Backend API hierarchy, active-only filter, and response schema
+        │   └── frontend_spec.md      # React document layout, visual header boxes, and LOT PIN table
+        └── record_of_assessment_and_cancellation/ # Record of Assessment & Cancellation (ROA & RCA)
+            └── spec.md               # Summary for Each Class report spec, table layout & sidebar integration
 ```
 
 ---
