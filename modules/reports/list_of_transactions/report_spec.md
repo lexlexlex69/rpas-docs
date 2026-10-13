@@ -37,11 +37,12 @@
 
 ### Rule B: Cross-Classification Visual Tracer (e.g., TD `20-05867`)
 - **Problem**: A TD has Class = `COMMERCIAL`, but Actual Use = `RESIDENTIAL`.
-  - In **Commercial Land ROA**: Displays TD `20-05867`, Area, and Market Value. Assessed Value remains blank.
+  - In **Commercial Land ROA**: Displays TD `20-05867`, No. RPU (`1`), Area, and Market Value. Assessed Value remains blank.
   - In **Residential Land ROA**: Displays the Assessed Value (`5,890`).
 - **Solution / Feature Requirement**:
-  - In the **Residential Land ROA** section, display the TD Number `20-05867` as well, formatted in a **light/muted color** (e.g., `#94a3b8` / grayed out badge).
-  - This allows assessors to immediately trace where that Assessed Value originated from in Commercial.
+  - In the **Residential Land ROA** section, display the TD Number `20-05867` as well, formatted in a **light/muted color** (e.g., `#307eec` / italic tracer badge).
+  - **No No. RPU for Tracers**: The tracer row must display a dash (`"—"`) under the **No. RPU** column (no RPU count) and must NOT be added to total RPU counts, as the physical RPU was already counted under Commercial.
+  - This allows assessors to immediately trace where that Assessed Value originated from in Commercial without duplicating RPU counts.
 
 ### Rule C: Building Market Value Tiers
 Group Buildings into two distinct rows/tiers based on Market Value:
@@ -104,8 +105,9 @@ Task: Implement / Update the "LIST OF TRANSACTIONS (ASSESSMENT AND CANCELLATION)
 
 3. Cross-Classification Visual Tracer:
    - If a TD has Class = COMMERCIAL and Actual Use = RESIDENTIAL (e.g. TD 20-05867):
-     - In COMMERCIAL ROA: Display TD number, Area, and Market Value. Assessed Value is empty.
+     - In COMMERCIAL ROA: Display TD number, No. RPU (`1`), Area, and Market Value. Assessed Value is empty.
      - In RESIDENTIAL ROA: Display the Assessed Value AND display the TD number in a light/muted color style (tracer badge) so users can trace its matching TD from Commercial.
+     - **No No. RPU**: Tracer entries in Residential ROA must have **no No. RPU** (`"—"` / blank) and are excluded from total RPU counts to prevent duplicate counting.
 
 4. Building Tier Grouping:
    - Group Buildings under "OVER 175,000" (> 175,000 Market Value) and "LESS THAN 175,000" (<= 175,000 Market Value).

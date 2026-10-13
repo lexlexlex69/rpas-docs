@@ -94,29 +94,31 @@ When `Classification` $\neq$ `Actual Use`, `extractItemsFromTd()` splits the app
 1. **Origin Entry (Placed in Classification Category)**:
    * Holds `market_value` and `area`.
    * `assessed_value` is set to **`null`** (rendered as blank).
+   * `no_of_rpu` is set to **`1`** (counted as 1 RPU under the origin Classification).
    * `is_tracer` = `false`.
 
 2. **Tracer Entry (Placed in Actual Use Category)**:
    * Holds `assessed_value`.
    * `market_value` and `area` are set to **`null`** (rendered as blank).
+   * **No No. RPU**: `no_of_rpu` is set to **`null`** (rendered as **`"—"`** / blank). Tracers have **no RPU count** in their row and are excluded from the category's total RPU count (`getRpuCount()` ignores tracers), ensuring the physical RPU is not counted twice.
    * `is_tracer` = `true`, storing `tracer_origin_category = Classification`.
 
 ```
 EXAMPLE TRACER (Classification = COMMERCIAL, Actual Use = RESIDENTIAL):
 
 COMMERCIAL SECTION (ROA):
-┌────────────────┬───────────────┬──────┬──────────────┬────────────────┐
-│ TD NUMBER      │ PIN NUMBER    │ AREA │ MARKET VALUE │ ASSESSED VALUE │
-├────────────────┼───────────────┼──────┼──────────────┼────────────────┤
-│ 20-01-0002-005 │ 162-01...-005 │ 250m²│ ₱ 500,000.00 │                │  <-- Blank AV
-└────────────────┴───────────────┴──────┴──────────────┴────────────────┘
+┌────────────────┬─────────┬───────────────┬──────┬──────────────┬────────────────┐
+│ TD NUMBER      │ NO. RPU │ PIN NUMBER    │ AREA │ MARKET VALUE │ ASSESSED VALUE │
+├────────────────┼─────────┼───────────────┼──────┼──────────────┼────────────────┤
+│ 20-01-0002-005 │    1    │ 162-01...-005 │ 250m²│ ₱ 500,000.00 │                │  <-- Blank AV, RPU Counted
+└────────────────┴─────────┴───────────────┴──────┴──────────────┴────────────────┘
 
 RESIDENTIAL SECTION (ROA):
-┌────────────────┬───────────────┬──────┬──────────────┬────────────────┐
-│ TD NUMBER      │ PIN NUMBER    │ AREA │ MARKET VALUE │ ASSESSED VALUE │
-├────────────────┼───────────────┼──────┼──────────────┼────────────────┤
-│ 20-01-0002-005 │ 162-01...-005 │      │              │  ₱ 100,000.00  │  <-- Blank MV & Area
-└────────────────┴───────────────┴──────┴──────────────┴────────────────┘
+┌────────────────┬─────────┬───────────────┬──────┬──────────────┬────────────────┐
+│ TD NUMBER      │ NO. RPU │ PIN NUMBER    │ AREA │ MARKET VALUE │ ASSESSED VALUE │
+├────────────────┼─────────┼───────────────┼──────┼──────────────┼────────────────┤
+│ 20-01-0002-005 │    —    │ 162-01...-005 │      │              │  ₱ 100,000.00  │  <-- No RPU ("—"), Blank MV & Area
+└────────────────┴─────────┴───────────────┴──────┴──────────────┴────────────────┘
 ```
 
 ---

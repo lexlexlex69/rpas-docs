@@ -97,8 +97,9 @@ TOTAL (green - RCA)      |      7       |   13,988     |  23,564,200  |    943,0
 Every property category alternates between additions (ROA) and cancellations (RCA):
 * **White / Colorless Cells (`#ffffff`)**:
   * Represents **Roll of Assessment (ROA)** additions (newly validated/approved TDs).
-* **Green Cells (`#92d050` / `#9ade7b`)**:
+* **Green Cells (`#92d050`)**:
   * Represents **Roll of Cancelled Assessment (RCA)** deductions (superseded or cancelled TDs).
+  * **All cells across every RCA row** (including Land, Building, Machinery, and the `TOTAL (RCA)` summary row) are rendered with the green background (`#92d050`).
 
 ### 3.3 The Residential Building Tiering Exception (4 Rows)
 Under BLGF guidelines, residential buildings are stratified into two assessment brackets:
@@ -109,14 +110,41 @@ Under BLGF guidelines, residential buildings are stratified into two assessment 
 
 Because of this dual tiering:
 * **`RESIDENTIAL`** spans **4 rows**:
-  * **Row 1 (White)**: Land ROA, Building **Over ₱175k** ROA, Machinery ROA.
-  * **Row 2 (Green)**: Land RCA, Building **Over ₱175k** RCA, Machinery RCA.
-  * **Row 3 (White)**: Building **₱175,000 & Below** ROA (Land & Machinery cells are blank).
-  * **Row 4 (Green)**: Building **₱175,000 & Below** RCA (Land & Machinery cells are blank).
+  * **Row 1 (White - ROA)**: Land ROA, Building **Over ₱175k** ROA, Machinery ROA (`is_rca: false`).
+  * **Row 2 (Green - RCA)**: Land RCA, Building **Over ₱175k** RCA, Machinery RCA (`is_rca: true`).
+  * **Row 3 (White - ROA)**: Building **₱175,000 & Below** ROA (`is_rca: false`, Land & Machinery cells are blank).
+  * **Row 4 (Green - RCA)**: Building **₱175,000 & Below** RCA (`is_rca: true`, Land & Machinery cells are blank).
 * **All Other Categories (`AGRICULTURAL`, `COMMERCIAL`, `INDUSTRIAL`, `TIMBERLAND`, `SPECIAL`)**:
   * Span **2 rows**:
-    * **Row 1 (White)**: Land ROA, Combined Building ROA, Machinery ROA.
-    * **Row 2 (Green)**: Land RCA, Combined Building RCA, Machinery RCA.
+    * **Row 1 (White - ROA)**: Land ROA, Combined Building ROA (`[...over_175k, ...less_175k]`), Machinery ROA (`is_rca: false`).
+    * **Row 2 (Green - RCA)**: Land RCA, Combined Building RCA, Machinery RCA (`is_rca: true`).
+
+### 3.4 Calculation & Exclusion Rules (Engine Alignment with List of Transactions)
+The report calculations strictly reuse the data engine (`arrangeListOfTransactionsData`) and counting logic (`getRpuCount`) from the [List of Transactions](file:///c:/Users/Administrator/Desktop/RPAS/Development/docs/modules/reports/list_of_transactions/frontend_spec.md) report to guarantee 100% mathematical consistency across reports:
+
+1. **RPU Count (`No. of RPU's`)**:
+   - Computed via `getRpuCount(list)`.
+   - **Excludes Tracers**: Filtered with `!item.is_tracer` so cross-classification tracers never increment the RPU count.
+   - **Spans Identical TDs**: Groups consecutive entries with the same `td_number`, ensuring multi-appraisal TDs are counted as exactly 1 physical RPU.
+
+2. **Land Area (`AREA (sq.m.)`)**:
+   - Sums declared land area only for non-tracer items (`!item.is_tracer`).
+   - Buildings and machinery do not have area columns.
+
+3. **Market Value (`MARKET VALUE`)**:
+   - Sums all items in the bucket. Tracers have `market_value: null` (evaluated as 0), so market value is attributed strictly to the origin Classification.
+
+4. **Assessed Value (`ASSESSED VALUE`)**:
+   - Sums all items in the bucket. Origin items where `class !== actual_use` have `assessed_value: null` (evaluated as 0), while tracer items carry the assessed value under the Actual Use.
+
+5. **Exclusion & Neglect Rules for Special Transactions**:
+   - **Standalone Notice of Cancellation (NOC)**: Transactions cancelled via Notice of Cancellation (`cancelled_by_notice_of_cancellation = true` within date range) without a superseding TD are assigned `roa = null` and `rca = item`. They are **completely neglected in ROA** (contribute 0 to ROA RPU, Area, MV, and AV) and **counted only in RCA**.
+   - **Discovery / New Property (`DC`)**: Transactions with code `DC` have no previous TD and are assigned `roa = item` and `rca = null`. They are **counted in ROA** and **completely neglected in RCA**.
+   - **Cross-Classification Tracers (`Classification !== Actual Use`)**:
+     - *Origin Item (Classification)*: `area = area`, `market_value = mv`, `assessed_value = null`, `no_of_rpu = 1`, `is_tracer = false`.
+     - *Tracer Item (Actual Use)*: `area = null`, `market_value = null`, `assessed_value = av`, `no_of_rpu = null`, `is_tracer = true`.
+     - Ensures the physical RPU and market value are registered under Classification, while assessed value is registered under Actual Use, preventing duplicate RPU counts.
+
 
 ---
 
