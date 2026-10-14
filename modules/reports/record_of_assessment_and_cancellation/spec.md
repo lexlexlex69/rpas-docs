@@ -281,6 +281,17 @@ In `ReportPreviewSidebar.jsx`:
 * Clicking this button invokes `openNewFaas(...)` to open the full `ListOfTransactionsDocument` in a new workspace tab, passing the identical `reportData` payload.
 * This allows assessors to instantly audit the individual TDs making up any cell's aggregate totals.
 
+### 5.4 Multi-Barangay Table Separation
+When **more than one barangay is selected** for report generation (e.g., specific selection of Agao and Ampayon, or All Barangays spanning multiple barangays):
+* The document dynamically generates **separate sets of tables for each barangay**.
+* Each barangay displays its own:
+  - Header (`RECORD OF ASSESSMENT (ROA) AND RECORD OF CANCELLATION (RCA) - SUMMARY FOR EACH CLASS - Month of [MONTH], [YEAR]`)
+  - Jurisdiction Line (`DISTRICT NO. : [DISTRICT]` and `BARANGAY: [BARANGAY_NAME]`)
+  - Full summary classification table (Residential Over/Less 175k, Agricultural, Commercial, Industrial, Timberland, Special)
+  - Grand Totals (TOTAL ROA in white, TOTAL RCA in green).
+* Scoped calculation is powered by `buildRoaRcaSummaryData(reportData, filterBarangay)`, which scopes ROA and NOC records per barangay while maintaining global parent TD lookup for RCA values.
+* Separate barangay sheets are demarcated on screen with dashed borders and margin spacing, and formatted for printing with `@media print { pageBreakAfter: "always", breakAfter: "page" }`.
+
 ---
 
 ## Related Documentation

@@ -50,7 +50,16 @@ Group Buildings into two distinct rows/tiers based on Market Value:
 2. **Less than 175,000** (`Market Value <= 175,000`)
 
 ### Rule D: RCA (Roll of Cancelled Assessment)
-- Leave RCA columns **blank / dash** for the initial implementation.
+- Leave RCA columns **blank / dash** for the initial implementation, or paired dynamically when parent TDs / NOC records exist.
+
+### Rule E: Multi-Barangay Table Separation
+- **Condition**: When more than 1 barangay is selected for report generation (e.g., Agao and Ampayon, or All Barangays).
+- **Frontend Presentation**:
+  - The frontend separates the tables for each barangay into independent sets.
+  - For example, if 2 barangays are selected (Agao and Ampayon), the frontend displays **2 sets of tables**:
+    - **Set 1**: Title, Sub-Header metadata (`BARANGAY: DISTRICT 01 (0001) AGAO`), and classification tables (Residential, Commercial, Industrial, Agricultural, etc.) for Agao.
+    - **Set 2**: Title, Sub-Header metadata (`BARANGAY: DISTRICT 01 (0002) AMPAYON`), and classification tables for Ampayon.
+  - Each set of tables is separated by on-screen visual demarcation and print page breaks (`@media print { pageBreakAfter: "always", breakAfter: "page" }`).
 
 ---
 
@@ -113,8 +122,12 @@ Task: Implement / Update the "LIST OF TRANSACTIONS (ASSESSMENT AND CANCELLATION)
    - Group Buildings under "OVER 175,000" (> 175,000 Market Value) and "LESS THAN 175,000" (<= 175,000 Market Value).
 
 5. Cancelled Assessment (RCA):
-   - Leave RCA columns blank / unpopulated.
+   - Dynamically matched to previous TDs and NOC records when available, or left blank/dash.
 
-6. Backend Constants Reference:
+6. Multi-Barangay Table Separation:
+   - If more than 1 barangay is selected (e.g., Agao and Ampayon), separate the tables for each barangay.
+   - The frontend displays distinct sets of classification tables for each barangay (e.g., 1 set for Agao and 1 set for Ampayon), each with its own header and separated by print page breaks.
+
+7. Backend Constants Reference:
    - Use `App\Constants\RpasCategoryConstant` for mapping Class IDs and Actual Use IDs to unified Major Categories (RESIDENTIAL, COMMERCIAL, INDUSTRIAL, AGRICULTURAL).
 ````

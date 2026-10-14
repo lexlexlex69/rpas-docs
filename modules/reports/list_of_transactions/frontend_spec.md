@@ -61,6 +61,15 @@ const payload = {
 
 // API Call
 const response = await handleRequest(() => API.post("reports/list-of-transactions", payload));
+
+if (response && response.data) {
+  onGenerateSuccess({
+    ...response.data,
+    selected_barangays: isIndividual ? selectedBarangays : null,
+    select_all_barangay: !isIndividual,
+  });
+  onClose();
+}
 ```
 
 ---
@@ -179,3 +188,31 @@ Each category contains side-by-side comparative sub-tables split into **ROLL OF 
 * **Building (Market Value ₱175,000 and Below)**
 * **Machinery**
 * **Category Subtotals & Grand Totals**
+
+---
+
+## 5. Multi-Barangay Table Separation
+
+When **more than one barangay is selected** for report generation (e.g., specific selection of Agao and Ampayon, or All Barangays spanning multiple barangays), the frontend dynamically splits the display into **independent sets of tables per barangay**:
+
+1. **Resolution of Barangays (`resolveBarangayList`)**:
+   - If `reportData.selected_barangays` contains multiple barangay entries (e.g. `[Agao, Ampayon]`), an independent table set is prepared for each selected barangay (even if a barangay currently has 0 transactions).
+   - If `select_all_barangay` is active, unique barangays are derived from `reportData.transactions`.
+   - If only 1 barangay is selected or found, single-table set mode is rendered.
+
+2. **Per-Barangay Header & Classification Display**:
+   - Each barangay section displays its own **Title Header** (`LIST OF TRANSACTIONS (ASSESSMENT AND CANCELLATION) FOR THE MONTH OF [MONTH], [YEAR]`).
+   - Each section displays its own **Sub-Header Metadata**:
+     - `BARANGAY: DISTRICT [DISTRICT] ([CODE]) [BARANGAY_NAME]` (e.g. `DISTRICT 01 (0001) AGAO`).
+     - `TAXABILITY: [TAXABILITY_LABEL]`
+     - `SMV YEAR: [SMV_YEAR]`
+   - Each section renders its own complete set of classification tables (`RESIDENTIAL`, `COMMERCIAL`, `INDUSTRIAL`, `AGRICULTURAL`, etc.) with Land, Building, and Machinery ROA/RCA subtotals and totals.
+
+3. **Scoped Filtering Engine (`arrangeListOfTransactionsData(reportData, filterBarangay)`)**:
+   - Scopes ROA and NOC transactions matching the target barangay via `matchesBarangay()`.
+   - Preserves global transaction map access so parent/superseded records (RCA) can always be resolved across relations.
+
+4. **Print & Screen Pagination**:
+   - On screen, distinct barangay sections are visually demarcated with margin spacing and a dashed boundary.
+   - For printing or PDF export, `@media print { pageBreakAfter: "always", breakAfter: "page" }` ensures each barangay begins on a new print roll.
+
