@@ -28,12 +28,16 @@ graph TD
 
 ## 2. SMV Versioning & Progression Rules
 
-1. **Chronological Progression**: A user can only perform a General Revision against an SMV version whose effective year is **strictly greater** than the current selected TD's SMV year:
-   $$\text{target\_smv.year} > \text{current\_td.smv.year}$$
-   * Example: If the current TD belongs to **SMV 2020**, the user can select **SMV 2027** or higher.
-   * Selecting equal or past SMV years (e.g., 2020, 2008, 1996) is **strictly disallowed**.
-2. **Approved Status Only**: Only SMVs with status `approved` in `rpas_smvs` are presented as selectable options.
-3. **Immutability of Historical TD Records**: The predecessor TD is never modified in-place. Its status transitions to `cancelled` with `cancelled_by_transaction = true`, and a link is established in `rpas_relationships`.
+1. **Strict Sequential Progression (No Jumping / No Version Skipping)**:
+   A user can only perform a General Revision against the **immediate successor SMV** that directly links to the current SMV via `parent_id`:
+   $$\text{target\_smv.parent\_id} = \text{current\_td.rpas\_smv\_id} \quad \text{and} \quad \text{target\_smv.status} = \text{'approved'}$$
+   * Example: If the current TD belongs to **SMV 2008**, it can **ONLY** be revised to **SMV 2020** (whose `parent_id` is 2008). It **CANNOT jump** straight to **SMV 2027**.
+   * Selecting past or equal SMV years is strictly disallowed.
+   * Attempting to jump past intermediate SMV revisions is rejected with HTTP 422.
+2. **Latest SMV Boundary**:
+   If an SMV has `is_latest = true` (or has no approved successor SMV with `parent_id = smv.id`), no General Revision can be initiated. Properties in this SMV are marked with status **"Latest SMV"** and cannot be selected for General Revision.
+3. **Approved Status Only**: Only SMVs with status `approved` in `rpas_smvs` are presented as selectable options.
+4. **Immutability of Historical TD Records**: The predecessor TD is never modified in-place. Its status transitions to `cancelled` with `cancelled_by_transaction = true`, and a link is established in `rpas_relationships`.
 
 ---
 
@@ -45,6 +49,8 @@ Defines the Schedule of Market Value revisions:
 * `code`: 2-digit SMV code used in TD numbering prefixes (e.g. `'20'` for 2020, `'27'` for 2027)
 * `name`: Revision label (e.g. `'2027 SMV'`)
 * `year`: Effective 4-digit calendar year (e.g. `'2027'`)
+* `parent_id`: Foreign key referencing predecessor `rpas_smvs.id` (defines linear version lineage: 1981 $\rightarrow$ 1996 $\rightarrow$ 2008 $\rightarrow$ 2020 $\rightarrow$ 2027)
+* `is_latest`: Boolean flag indicating whether this is the latest approved SMV series
 * `status`: Approval state (`'approved'`, `'pending'`)
 
 ### 3.2 `rpas_appraisal_categories`
