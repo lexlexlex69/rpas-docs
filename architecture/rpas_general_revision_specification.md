@@ -5,16 +5,16 @@
 In the Real Property Assessment System (RPAS), a **General Revision (`GR`, Transaction ID: 3)** is a standard $1 \rightarrow 1$ (One-to-One) transaction. It is executed periodically when a Local Government Unit (LGU) enacts an updated **Schedule of Market Values (SMV)** (e.g. transitioning from SMV 2020 to SMV 2027).
 
 The primary purpose of a General Revision is to:
-1. Re-appraise property units according to the new SMV's revised unit values (defined per property kind, class, and sub-class).
-2. Recalculate Base Market Values, Adjustments (stripping, road types, influence), and Assessed Values based on the new SMV parameters.
+1. Transition property records and series to the immediate successor SMV (e.g., from `20` to `27`).
+2. Copy forward predecessor appraisals and grand totals intact so that the assessor can manually review and select the appropriate class and sub-class to use in the new SMV.
 3. Archive/cancel the predecessor Tax Declaration (`cancelled_by_transaction = true`) and issue a newly minted active Tax Declaration under the new SMV series (e.g., `27-XX-XXXXX`).
 
 ```mermaid
 graph TD
     Predecessor["Predecessor TD (e.g., 20-01-0001-00009)<br/>SMV: 2020<br/>Status: CANCELLED (by transaction)"]
-    GRModal["General Revision Dialog<br/>Restricted to SMV Year > 2020<br/>Selected: SMV 2027"]
-    BackendService["RpasRealPropertyFileService<br/>- Maps 2027 Unit Values<br/>- Recalculates Appraisals & Totals<br/>- Clones Predecessor Snapshot"]
-    Workspace["FaasWorkspace Tab (Editable)<br/>- Pre-populated with 2027 Values<br/>- Previous TD: 20-01-0001-00009<br/>- ReadOnly: false"]
+    GRModal["General Revision Dialog<br/>Restricted to Immediate Next SMV<br/>Selected: SMV 2027"]
+    BackendService["RpasRealPropertyFileService<br/>- Advances SMV to Target Year (2027)<br/>- Copies Predecessor Appraisals & Totals<br/>- Retains Base Values & Adjustments"]
+    Workspace["FaasWorkspace Tab (Editable)<br/>- Carries Forward Appraisals<br/>- Assessor Manually Selects Class & Sub-Class<br/>- ReadOnly: false"]
     Successor["New TD (e.g., 27-01-0001-00001)<br/>SMV: 2027<br/>Status: ACTIVE"]
 
     Predecessor --> GRModal
@@ -73,22 +73,18 @@ For a new SMV to support comprehensive property editing and calculation, the fol
 
 ---
 
-## 4. Appraisal Recalculation Engine
+## 4. Appraisal Handling (Simplified Copy-Forward Process)
 
-When transitioning an existing Tax Declaration to a target SMV revision:
+To ensure operational efficiency and eliminate automatic calculation discrepancies during SMV migration, the General Revision process is simplified:
 
-### 4.1 Unit Value Re-mapping
-For each appraisal record:
-1. Locate the corresponding `rpas_appraisal_categories` record where:
-   * `rpas_smv_id = target_smv_id`
-   * `rpas_kind_id = td.rpas_kind_id`
-   * `rpas_class_id = appraisal.rpas_class_id`
-   * `rpas_sub_class_id = appraisal.rpas_sub_class_id`
-2. Update the appraisal's:
-   * `rpas_appraisal_category_id = new_category.id`
-   * `unit_value = new_category.unit_value`
+### 4.1 Copy-Forward Mechanism
+Instead of automatically force-matching and recalculating unit values against the new SMV's schedule categories:
+1. **Direct Appraisal Replication**: All previous appraisal records (`appraisals` and `plants_and_trees`) are carried over intact from the predecessor Tax Declaration.
+2. **Preserved Figures**: Area, unit value, base market value, stripping and road adjustments, adjusted market value, assessment level, and assessed value remain identical to the predecessor record upon initial generation.
+3. **Manual Class & Sub-Class Selection**: The user manually selects the desired class and sub-class to apply from the target SMV within the FAAS workspace, recalculating or adjusting lines as necessary.
 
-### 4.2 Formula Cascades
+### 4.2 Formula Reference (When Recalculating Manually)
+When an assessor edits class, sub-class, or adjustments in the workspace, standard RPAS valuation formulas apply:
 
 $$\text{Base Market Value (BMV)} = \text{Area} \times \text{Unit Value}$$
 
@@ -116,18 +112,18 @@ $$\text{Total Assessed Value} = \sum \text{Assessed Value}$$
   * `smv_id` updated to `target_smv_id`.
   * `rpas_smv` populated with target SMV details.
   * `effectivity_year` initialized to target SMV effective year.
-  * `appraisals` updated with new unit values, updated category IDs, and recalculated market/assessed values.
-  * `total_market_value` and `total_assessed_value` recalculated.
+  * `appraisals` and `plants_and_trees` directly copied forward from the predecessor record.
+  * `total_market_value` and `total_assessed_value` preserved from predecessor totals.
+  * `is_validated` and `is_approved` set to `false` (`validated_date` and `approved_date` set to `null`).
 
 ---
 
 ## 6. Frontend UI / UX Flow
 
 1. In `TransactionMenu.jsx`, clicking **GR - General Revision** launches `GeneralRevisionDialog`.
-2. `GeneralRevisionDialog` compares the current TD's SMV year with available approved SMVs:
-   * Only SMVs where `year > current_td.smv.year` are enabled.
-   * If none exist, an alert informs the user that no newer SMV is available.
-3. Upon selecting an SMV and clicking **Proceed**:
+2. `GeneralRevisionDialog` locks selection to the immediate successor SMV (`next_smv_id` / `parent_id = current_td.smv_id`):
+   * If current SMV is latest or has no successor, an alert informs the user that General Revision cannot proceed.
+3. Upon clicking **Proceed**:
    * A new tab is created in `FaasWorkspace` in loading state.
    * The General Revision preview endpoint is fetched.
    * `transformFaasData` applies transaction transformation:
@@ -135,8 +131,10 @@ $$\text{Total Assessed Value} = \sum \text{Assessed Value}$$
      * `tempId`: newly generated UUID
      * `rpas_transaction_id`: `3` (`GR`)
      * `readOnly`: `false` (interactive edit mode)
+     * `is_validated`: `false`
+     * `is_approved`: `false`
      * `previous_td_id`: `[current_td.id]`
      * `previous_td_number`: `current_td.td_no`
      * `appraisals`: existing appraisal IDs removed so fresh entries are persisted.
-4. The user may inspect or tweak values in `FaasWorkspace`.
-5. Clicking **Save** persists the new TD via `POST /api/rpas/create-tax-declaration` (`StoreTaxDec`), retiring the predecessor and assigning a new 2027 TD number.
+4. The user reviews the copied appraisals in `FaasWorkspace` and manually selects the class and sub-class for the new SMV.
+5. Clicking **Save** persists the new TD via `POST /api/rpas/create-tax-declaration` (`StoreTaxDec`), retiring the predecessor and assigning a new TD number in the new SMV series.

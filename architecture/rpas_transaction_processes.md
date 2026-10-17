@@ -60,7 +60,7 @@ The following transaction types are configured in the `rpas_transactions` table:
 | :-: | :--: | :--- | :---: | :---: | :--- |
 | **1** | `DC` | **New Discovery** | Land, Bldg, Mach | $0 \rightarrow 1$ (None $\rightarrow$ New) | First declaration of an unrecorded or newly discovered property entering the tax roll. No previous TD exists. |
 | **2** | `CS` | **Consolidation** | **Land Only** | $N \rightarrow 1$ (Many $\rightarrow$ One) | Combining multiple adjoining parcels (e.g. 10 lots) into 1 single unified parcel and TD. |
-| **3** | `GR` | **General Revision** | Land, Bldg, Mach | $1 \rightarrow 1$ (One $\rightarrow$ One) | Periodic city-wide re-assessment under a new SMV revision year (e.g., SMV 2020), updating assessment levels and market values. |
+| **3** | `GR` | **General Revision** | Land, Bldg, Mach | $1 \rightarrow 1$ (One $\rightarrow$ One) | Periodic city-wide re-assessment under an updated SMV revision year (e.g., SMV 2027); carries forward predecessor appraisals intact, enabling manual class and sub-class selection. |
 | **4** | `PC` | **Reassessment for Physical Change** | Land, Bldg, Mach | $1 \rightarrow 1$ (One $\rightarrow$ One) | Triggered by physical alterations, new construction, major renovations, partial demolition, or land leveling. |
 | **5** | `DP` | **Reassessment for Dispute in Assessment** | Land, Bldg, Mach | $1 \rightarrow 1$ (One $\rightarrow$ One) | Reassessment resulting from a formal taxpayer protest, dispute, or decision from the Local Board of Assessment Appeals (LBAA). |
 | **6** | `RE` | **Reclassification** | Land, Bldg, Mach | $1 \rightarrow 1$ (One $\rightarrow$ One) | Change in actual use or zoning classification (e.g., Agricultural converted to Residential, or Residential to Commercial). |
